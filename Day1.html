@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotional Canvas | Watercolor Edition</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --input-bg: #f5f5f5;
+            --border-color: #ddd;
+        }
+        body {
+            margin: 0;
+            padding: 40px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 {
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            color: #000;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: #333;
+            padding: 20px;
+            font-size: 1.1rem;
+            font-family: inherit;
+            border-radius: 8px;
+            resize: none;
+            outline: none;
+            box-sizing: border-box; 
+        }
+        button {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: 600;
+            align-self: flex-end;
+            transition: opacity 0.3s;
+        }
+        button:hover { opacity: 0.8; }
+        
+        #artCanvas {
+            width: 100%;
+            height: 600px;
+            background-color: #ffffff;
+            border: 1px solid #eee;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            cursor: crosshair;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .dna-display {
+            font-family: monospace;
+            color: #888;
+            font-size: 0.8rem;
+            text-align: right;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Emotional Watercolor</h1>
+
+    <div class="container">
+        <div>
+            <textarea id="journalInput" placeholder="Pour your feelings here..."></textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="dna-display" id="dnaOutput">DNA: Waiting...</div>
+                <button onclick="generateArt()">Paint It</button>
+            </div>
+        </div>
+
+        <canvas id="artCanvas" width="2000" height="1200"></canvas>
+
+        <div class="legend">
+            <span>0.Sadness</span> <span>1.Anger</span> <span>2.Fear</span> <span>3.Disgust</span>
+            <span>4.Calm</span> <span>5.Focus</span> <span>6.Surprise</span> <span>7.Trust</span>
+            <span>8.Joy</span> <span>9.Ecstasy</span>
+        </div>
+    </div>
+
+<script>
+    const lexicon = {
+        '0': ['sad', 'sadness', 'depressed', 'lonely', 'grief', 'cry', 'tears', 'blue', 'gloomy', 'loss', 'miss', 'regret', 'shame', 'empty', 'pain'],
+        '1': ['angry', 'anger', 'mad', 'furious', 'rage', 'hate', 'annoyed', 'irritated', 'frustrated', 'yell', 'fight', 'conflict', 'bad', 'burn'],
+        '2': ['fear', 'scared', 'afraid', 'terrified', 'panic', 'anxiety', 'nervous', 'worry', 'stress', 'tremble', 'danger', 'run', 'hide'],
+        '3': ['disgust', 'sick', 'nausea', 'gross', 'nasty', 'vile', 'yuck', 'vomit', 'trash', 'dirty', 'ugly'],
+        '4': ['calm', 'quiet', 'still', 'bored', 'tired', 'sleep', 'relax', 'fine', 'okay', 'neutral', 'nothing', 'slow', 'meh', 'wait'],
+        '5': ['expect', 'hope', 'wish', 'plan', 'ready', 'curious', 'think', 'focus', 'seek', 'watch', 'learn', 'goal', 'maybe', 'future'],
+        '6': ['surprise', 'shock', 'stunned', 'amazed', 'wow', 'sudden', 'boom', 'crazy', 'wild', 'weird', 'jolt'],
+        '7': ['trust', 'safe', 'secure', 'home', 'family', 'friend', 'help', 'agree', 'connect', 'team', 'believe', 'peace', 'warm'],
+        '8': ['happy', 'joy', 'glad', 'good', 'great', 'smile', 'laugh', 'fun', 'excited', 'sunny', 'win', 'cool', 'awesome', 'play'],
+        '9': ['ecstasy', 'bliss', 'love', 'loved', 'passion', 'perfect', 'magic', 'divine', 'soul', 'glow', 'dream', 'best', 'light']
+    };
+
+    // Updated Colors for White Background (Darker/Richer to show up)
+    const configs = {
+        0: { color: 'rgba(30, 60, 90, 0.05)', style: 'drip' },      // Deep Watercolor Blue
+        1: { color: 'rgba(200, 40, 40, 0.08)', style: 'chaos' },    // Blood Red wash
+        2: { color: 'rgba(100, 40, 150, 0.06)', style: 'fog' },     // Purple Fog
+        3: { color: 'rgba(40, 100, 40, 0.06)', style: 'slime' },    // Moss Green
+        4: { color: 'rgba(120, 130, 140, 0.04)', style: 'still' },  // Grey Mist
+        5: { color: 'rgba(220, 100, 0, 0.06)', style: 'spiral' },   // Orange
+        6: { color: 'rgba(220, 0, 220, 0.08)', style: 'burst' },    // Magenta
+        7: { color: 'rgba(0, 180, 160, 0.05)', style: 'flow' },     // Teal
+        8: { color: 'rgba(250, 180, 0, 0.07)', style: 'bloom' },    // Golden Yellow
+        9: { color: 'rgba(255, 215, 0, 0.1)', style: 'radiance' }   // Gold/Light
+    };
+
+    function analyzeText(text) {
+        let cleanText = text.toLowerCase().replace(/[^\w\s]/g, '');
+        let words = cleanText.split(/\s+/);
+        let dna = "";
+        let foundAny = false;
+        words.forEach(word => {
+            let matched = false;
+            for (let digit in lexicon) {
+                if (lexicon[digit].includes(word)) { dna += digit; matched = true; foundAny = true; break; }
+            }
+            if (!matched) {
+                for (let digit in lexicon) {
+                    for (let syn of lexicon[digit]) {
+                        if (syn.length > 3 && word.startsWith(syn)) { dna += digit; matched = true; foundAny = true; break; }
+                    }
+                    if (matched) break;
+                }
+            }
+        });
+        return foundAny ? dna : "444";
+    }
+
+    function generateArt() {
+        const input = document.getElementById('journalInput').value;
+        const dna = analyzeText(input);
+        document.getElementById('dnaOutput').innerText = "DNA Code: " + dna;
+
+        const canvas = document.getElementById('artCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // 1. White Canvas
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+
+        // 2. Enable Blending (Like watercolor on paper)
+        ctx.globalCompositeOperation = 'multiply';
+
+        const totalStrokes = dna.length;
+        
+        // DENSITY MULTIPLIER: If text is short, draw MORE to fill canvas
+        let density = totalStrokes < 5 ? 150 : (totalStrokes < 10 ? 80 : 40);
+
+        for (let i = 0; i < totalStrokes; i++) {
+            let digit = parseInt(dna[i]);
+            let config = configs[digit];
+            
+            // 3. Organic Flow: 
+            // We still move left-to-right (i/total) but the VARIANCE is huge (width/2)
+            // This creates the "Fusion" effect where layers overlap massively.
+            let centerX = (i / totalStrokes) * width;
+            
+            // Draw a CLUSTER for every emotion
+            for (let j = 0; j < density; j++) {
+                // Large Random scatter
+                let x = centerX + (Math.random() * width * 0.6 - width * 0.3);
+                let y = height / 2 + (Math.random() * height * 0.8 - height * 0.4);
+                
+                // Randomize size for "Big" feel
+                let scale = Math.random() * 2 + 1; 
+
+                drawWatercolorStroke(ctx, config, x, y, scale);
+            }
+        }
+        
+        // Reset blend mode for UI or saving
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function drawWatercolorStroke(ctx, config, x, y, scale) {
+        ctx.fillStyle = config.color;
+        
+        // Randomize the color slightly for depth
+        // (Not implemented in this simple version to keep code stable, but opacity does the work)
+
+        switch(config.style) {
+            case 'drip': // SADNESS - Big washes
+                ctx.beginPath();
+                let r = 40 * scale;
+                ctx.arc(x, y, r, 0, Math.PI*2);
+                ctx.fill();
+                // Drips
+                ctx.fillRect(x - 2, y, 4 * scale, Math.random() * 300 * scale);
+                break;
+
+            case 'chaos': // ANGER - Big scratches
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + (Math.random()*200 - 100)*scale, y + (Math.random()*200 - 100)*scale);
+                ctx.strokeStyle = config.color;
+                ctx.lineWidth = 15 * scale;
+                ctx.stroke();
+                break;
+
+            case 'fog': // FEAR - Large amorphous blobs
+                ctx.beginPath();
+                ctx.arc(x, y, 80 * scale, 0, Math.PI*2);
+                ctx.fill();
+                break;
+
+            case 'slime': // DISGUST
+                ctx.beginPath();
+                ctx.arc(x, y, 50 * scale, 0, Math.PI*2);
+                ctx.fill();
+                break;
+
+            case 'still': // CALM - Huge horizontal swathes
+                ctx.fillRect(x - 150*scale, y - 10, 300*scale, 20*scale);
+                break;
+
+            case 'spiral': // FOCUS
+                ctx.beginPath();
+                ctx.arc(x, y, 60 * scale, 0, Math.PI*2);
+                ctx.strokeStyle = config.color;
+                ctx.lineWidth = 5 * scale;
+                ctx.stroke();
+                break;
+
+            case 'burst': // SURPRISE
+                for(let k=0; k<3; k++) {
+                    ctx.beginPath();
+                    ctx.arc(x + Math.random()*50, y + Math.random()*50, 20*scale, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                break;
+
+            case 'flow': // TRUST
+                ctx.beginPath();
+                ctx.arc(x, y, 100 * scale, 0, Math.PI*2);
+                ctx.fill();
+                break;
+
+            case 'bloom': // JOY - Big Circles
+                ctx.beginPath();
+                ctx.arc(x, y, 90 * scale, 0, Math.PI*2);
+                ctx.fill();
+                break;
+
+            case 'radiance': // ECSTASY - Rays of light
+                ctx.beginPath();
+                ctx.arc(x, y, 120 * scale, 0, Math.PI*2);
+                ctx.fill();
+                break;
+        }
+    }
+
+    document.getElementById("journalInput").addEventListener("keypress", function(event) {
+        if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); generateArt(); }
+    });
+</script>
+</body>
+</html>
