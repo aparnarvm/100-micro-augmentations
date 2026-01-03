@@ -6,7 +6,7 @@ def get_saliency_map(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.resize(gray, (160, 120)) # Small scale is better for global saliency
     
-    # 2. Spectral Residual Math (The "Lizard Brain" Logic)
+    # 2. Spectral Residual Math
     # Perform Fast Fourier Transform
     fft = np.fft.fft2(gray)
     log_amplitude = np.log(np.abs(fft) + 1e-9)
@@ -36,12 +36,12 @@ while True:
     # Calculate the saliency
     saliency_map = get_saliency_map(frame)
     
-    # --- VISUALIZATION (Cinematic Aesthetic) ---
+    # --- VISUALIZATION ---
     # A. Create a B&W base of reality
     gray_reality = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray_reality_bgr = cv2.cvtColor(gray_reality, cv2.COLOR_GRAY2BGR)
     
-    # B. Create the Heatmap (Inferno gives that Deep Gold/Red look)
+    # B. Create the Heatmap
     heatmap_intensity = (saliency_map * 255).astype(np.uint8)
     heatmap_color = cv2.applyColorMap(heatmap_intensity, cv2.COLORMAP_INFERNO)
     
@@ -54,7 +54,7 @@ while True:
     # Composite: Glowing distractions over a desaturated world
     result = (heatmap_color * mask_3d) + (gray_reality_bgr * mask_inv_3d)
     
-    # Add labels for the video demo
+    # Add labels
     cv2.putText(result, "SALIENCY MIRROR: IDENTIFYING ATTENTION LEAKS", (20, 40), 
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
